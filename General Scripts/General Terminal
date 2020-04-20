@@ -1,0 +1,41 @@
+#General Cluster options:
+
+#Login: 
+ssh -XY jcayford@herman-login3.liai.org
+
+# Running an interactive job:
+qsub -X -I -q default -l nodes=1:ppn=12 -l mem=30GB  -l walltime=8:00:00
+
+
+
+# Conda installation of packages in their own env
+    conda create -n {env name} {package name}
+
+# Activate conda env
+    source activate {env name}
+
+# Leave conda env
+    conda deactivate
+
+
+# Move many files 
+mv -t DESTINATION file1 file2 file3
+
+
+# Awk script from Souya
+awk '{print "chr1\t"$1"\t"($1+5000)"\tchr1\t"$2"\t"($2+5000)"\t"$3}' inputfile > outfile
+
+# Awk to cat files with the same header to keep only the first header
+awk 'NR==1 {header=$_} FNR==1 && NR!=1 { $_ ~ $header getline; } {print}' <input files> > <output files>
+
+
+
+
+#To check the sequence in the genome browser:
+http://genome.ucsc.edu/cgi-bin/das/hg19/dna?segment=chr3:124035000:124040000
+
+
+
+
+/mnt/BioAdHoc/Groups/vd-vijay/justin/mustache
+
