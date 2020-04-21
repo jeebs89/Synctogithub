@@ -1,0 +1,16 @@
+# Zipping and moving the files to the correct place for Fit-HiC
+        gzip -ck healthy_interactions_chr1_NONE.txt > healthy_interactions_chr1_NONE.gz
+        mv healthy_interactions_chr1_NONE.gz fithic_test
+
+        gzip -ck healthy_fragments_chr1_NONE.txt > healthy_fragments_chr1_NONE.gz
+        mv healthy_fragments_chr1_NONE.gz fithic_test
+#
+
+
+## Need to set lower bound to about 10-20 kb and the upper bound to 1-2
+
+# Running the Fit-Hic code
+        fithic -r 5000 -l test_fithic_healthy_chr1 -f healthy_fragments_chr1_NONE.gz -i healthy_interactions_chr1_NONE.gz -o test_fithic_healthy_chr1 -U 25000 -x intraOnly
+#
+
+

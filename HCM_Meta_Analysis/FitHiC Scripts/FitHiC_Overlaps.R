@@ -98,7 +98,7 @@ library('viridisLite', lib="/home/jcayford/r_libs")
                 main_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw"
                 healthy_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/healthy/fithic_10k_2mb"
                 disease_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/disease/fithic_10k_2mb"
-                raw_data_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/text_files"
+                raw_data_wd <- "/home/jcayford/HCM/Analysis/Juicer/indiv_chr/none_normalized"
                 export_wd <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes"
                 plot_wd <- "/home/jcayford/HCM/Analysis/HiC_R/plots"
                 

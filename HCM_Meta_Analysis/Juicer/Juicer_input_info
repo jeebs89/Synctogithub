@@ -1,0 +1,27 @@
+
+## Chr 1 example to generate .txt from the .hic files
+
+# java -jar /home/jcayford/tools/juicer/PBS/scripts/juicer_tools.jar dump observed KR /home/jcayford/HCM/data/GSM2544836_No_Tx.hic 1 1 BP 5000 healthy_chr1_KR.txt
+
+
+
+# Generate all the names in R before cat-ing them together.  
+                R
+                awk_strings <- function(file, chr, dis_hel){
+                print(paste(paste("java -jar /home/jcayford/tools/juicer/PBS/scripts/juicer_tools.jar dump observed KR /home/jcayford/HCM/data/", file, " ",chr, " ", chr, " BP 5000 ", dis_hel, "_chr", i, "_KR.txt", sep="")))
+                }
+
+
+                h_strings <- c()
+                d_strings <- c()
+                for( i in 1:19){
+                        h_strings <- rbind(h_strings, awk_strings("GSM2544836_No_Tx.hic", i, "healthy"))
+                        d_strings <- rbind(d_strings, awk_strings("GSM2544839_Tx_Cre-plus.hic", i, "disease"))
+                }
+
+                strings <- rbind(h_strings, d_strings)
+                write.table(strings, "juicer_inputs.txt", col.names=F, row.names=F, quote=F)
+                q()
+
+#
+
