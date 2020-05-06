@@ -32,7 +32,7 @@ library('tidyverse', lib="/home/jcayford/r_libs")
 
 #
 # q.value threshold, since the input files have a threshold of 0.1
-qval_threshold <- 0.1
+qval_threshold <- 0.01
 
 #
 # Importing the files and filtering based on the given threshold for the qval

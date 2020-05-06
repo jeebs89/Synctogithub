@@ -79,7 +79,7 @@
         #chip_bed <- "polr2a.bed" 
         chip_bed <- "mef2a.bed"
         tf <- "mef2"  
-        qval <- 0.1
+        qval <- 0.05
 
 
     # Start of the script

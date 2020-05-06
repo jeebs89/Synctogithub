@@ -1,0 +1,85 @@
+[
+
+	{
+	type:"bedgraph",
+	url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_Justin_ChIP_Seq/HiC/ctcf.bedgraph.gz",
+	name:"ctcf.bed",
+	mode:"Density",
+	height:60,
+	fixedscale:{min:0,max:10},
+	showOnHubLoad:true,
+	options: {
+		color:"#CC00CC",
+	},
+	},
+
+	{
+	type:"bedgraph",
+	url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_Justin_ChIP_Seq/HiC/ctcf_circulation.narrowPeak.bedgraph.gz",
+	name:"ctcf_circulation.narrowPeak",
+	mode:"Density",
+	height:60,
+	fixedscale:{min:0,max:10},
+	showOnHubLoad:true,
+	options: {
+		color:"#0000FF",
+	},
+	},
+
+	{
+	type:"bedgraph",
+	url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_Justin_ChIP_Seq/HiC/mef2a.bedgraph.gz",
+	name:"mef2a.bed",
+	mode:"Density",
+	height:60,
+	fixedscale:{min:0,max:10},
+	showOnHubLoad:true,
+	options: {
+		color:"#00FF00",
+	},
+	},
+
+	{
+	type:"bedgraph",
+	url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_Justin_ChIP_Seq/HiC/polr2a.bedgraph.gz",
+	name:"polr2a.bed",
+	mode:"Density",
+	height:60,
+	fixedscale:{min:0,max:10},
+	showOnHubLoad:true,
+	options: {
+		color:"#CC00CC",
+	},
+	},
+
+	{
+	type:"longrange",
+	url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_Justin_ChIP_Seq/HiC/hic_contacts_q0.05_WashU.bed.gz",
+	name:"hic_contacts_q0.05",
+	showOnHubLoad:true,
+	options: {
+		height:300,
+		color:"#FF0000",
+		displayMode:"arc",
+		scoreScale:"fixed",
+		scoreMax:10,
+		scoreMin:0
+	},
+	},
+
+	{
+		type:"longrange",
+		url:"https://informaticsdata.liai.org/BioAdHoc/Groups/vd-vijay/justin/sourya/hic_contacts_mef2_filtered_q0.05_out_washU.bed.gz",
+		name:"hic_contacts_filtered_q0.05",
+		showOnHubLoad:true,
+		options: {
+			height:300,
+			color:"#FF0000",
+			displayMode:"arc",
+			scoreScale:"fixed",
+			scoreMax:10,
+			scoreMin:0
+		},
+		},
+
+]
