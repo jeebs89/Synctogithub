@@ -1,5 +1,7 @@
-   library('tidyverse', lib="/home/jcayford/r_libs")
-        library('viridisLite')
+
+
+library('tidyverse', lib="/home/jcayford/r_libs")
+library('viridisLite')
       
   # Functions
         # Rounding data
@@ -43,9 +45,8 @@
 
     # Directories for importing and exporting the data 
             hic_data_directory <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes"
-            chip_beds_directory <- "/home/jcayford/HCM/Analysis/ChIP_files/"
-            
-            export_directory <- "/home/jcayford/HCM/Analysis/Gene_lists"
+            chip_beds_directory <- "/home/jcayford/HCM/Analysis/ChIP_files/"            
+            export_directory <- "/home/jcayford/HCM/Analysis/HiC_R/washU_outputs"
 
 
         #chip_bed <- "polr2a.bed" 
@@ -62,6 +63,7 @@
             # ChIP Peaks
                 setwd(chip_beds_directory)
                 chip_peaks_a <- read.table(chip_bed)
+                chip_peaks_a <- chip_peaks_a %>% arrange(V1, V2, V3)
                         if(chip_peaks_a[1,1]==1){chip_peaks <- data.frame(paste("chr", chip_peaks_a[,1], sep=""), chip_peaks_a[,2:5])}
                         if(chip_peaks_a[1,1]=="chr1"){chip_peaks <- chip_peaks_a[,1:5]}                       
                 colnames(chip_peaks) <- c("chr1", "start", "end", "peak", "height")     
@@ -79,7 +81,6 @@
         # Filtering FitHiC data with the ChIP-Seq Peaks
 
             chip_means <- round_to(rowMeans(chip_peaks[,2:3]), to=2500)
-            rna_means <- round_to(rowMeans(rna_data[,3:4]), to=2500)      
        
             # Filtering the HiC data
                 hic_filtered_a <- NULL
@@ -92,23 +93,52 @@
 
 
 
-
-hic_a <- hic_filtered[,1:6]
-write.table(hic_a, "hic_contacts_mef2_filtered_q0.05.txt", col.names=TRUE, row.names=FALSE, quote=FALSE)
-
-awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' hic_contacts_mef2_filtered_q0.05.txt | sort -k1,1 -k2,2n > hic_contacts_mef2_filtered_q0.05_out_washU.bed
-bgzip hic_contacts_mef2_filtered_q0.05_out_washU.bed
-tabix -p bed hic_contacts_mef2_filtered_q0.05_out_washU.bed.gz
-
-
-
-
-
 hic_f <- hic_filtered
-
-
 hic_f[is.na(hic_f)]<-0
 
-subs <- data.frame(hic_f, "sub"=(hic_f$h_contactCount - hic_f$d_contactCount))
+subs <- data.frame(hic_f, "sub"=(hic_f$h_contactCount - hic_f$d_contactCount), "cond_1"=NA)
+
+subs[subs$sub < -3, 14] <- "disease"
+subs[subs$sub > 3, 14] <- "healthy"
+subs[subs$sub >= -3 & subs$sub <= 3, 14] <- "both"
+
+disease_loops <- subs %>% filter(cond_1 == "disease" | cond_1 == "both") %>% select(c(1:6))
+healthy_loops <- subs %>% filter(cond_1 == "healthy" | cond_1 == "both") %>% select(c(1:6))
+
+
+
+setwd(export_directory)
+
+write.table(disease_loops, "hic_contacts_ctcf_disease_combo_q0.05.txt", col.names=TRUE, row.names=FALSE, quote=FALSE)
+write.table(healthy_loops, "hic_contacts_ctcf_healthy_combo_q0.05.txt", col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+
+
+
+awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' hic_contacts_ctcf_disease_combo_q0.05.txt| sort -k1,1 -k2,2n > hic_contacts_ctcf_disease_combo_q0.05_out_washU.bed
+bgzip hic_contacts_ctcf_disease_combo_q0.05_out_washU.bed
+tabix -p bed hic_contacts_ctcf_disease_combo_q0.05_out_washU.bed.gz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

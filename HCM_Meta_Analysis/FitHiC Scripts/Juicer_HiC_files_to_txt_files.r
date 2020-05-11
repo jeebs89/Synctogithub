@@ -52,13 +52,15 @@ normalization <- "kr"
 # Setting the import and export directories
 
 import_dir <- paste("/home/jcayford/HCM/Analysis/Juicer/indiv_chr/", normalization, "_normalized", sep="")
-export_dir <- paste("/home/jcayford/HCM/Analysis/Fithic_Raw/", normalization, "_balanced", sep="")
+export_dir <- paste("/home/jcayford/HCM/Analysis/Fithic_Raw/zipped_files", normalization, "_balanced", sep="")
 
 for(j in 1:19){
     print(paste(Sys.time(), "............ working on healthy chromosome: ", j, sep=""))
         frags_inters_func(j, "healthy", TRUE)
     print(paste(Sys.time(), "............ working on disease chromosome: ", j, sep=""))
         frags_inters_func(j, "disease", TRUE)
+    print(paste(Sys.time(), "............ working on disease chromosome: ", j, sep=""))
+        frags_inters_func(j, "ctcf_ko", TRUE)
 }
 
 
