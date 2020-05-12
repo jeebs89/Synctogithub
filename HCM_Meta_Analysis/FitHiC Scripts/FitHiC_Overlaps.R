@@ -18,17 +18,17 @@ library('viridisLite', lib="/home/jcayford/r_libs")
             
                 # Function to combine the healthy and disease contact counts based on a given q_value filter
                     combining_func <- function(state, q_value){
-                                    if(state == "healthy"){
+                                    if(state == comp_a){
                                             df_filter <- fithic_h_df
                                             df_raw <- d_raw_df 
                                             columns <- c(1:4, 6, 7, 5, 10)
                                     } 
-                                    if(state == "disease"){
+                                    if(state == comp_b){
                                             df_filter <- fithic_d_df
                                             df_raw <- h_raw_df
                                             columns <- c(1:4, 6, 7, 10, 5)         
-                                    }     
-
+                                    }    
+                                 
                             q_filter <- df_filter %>% filter(q.value < q_value)
                             combined_a <- left_join(q_filter, df_raw, by=c("fragmentMid1", "fragmentMid2"))
                             combined_a[is.na(combined_a)] <- 0
@@ -40,10 +40,11 @@ library('viridisLite', lib="/home/jcayford/r_libs")
 
                 # Function to import the fithic data and to rearrange the columns
                     fithic_import <- function(state){
-                                    data <- paste(state, "_chr", chr_num,".spline_pass1.res5000.significances.txt" , sep="")
+                                    data <- paste0(state, "_chr", chr_num,".spline_pass1.res5000.significances.txt")
                                     
                                     if(state == "healthy"){setwd(healthy_wd)}
                                     if(state == "disease"){setwd(disease_wd)}
+                                    if(state == "ctcf_ko"){setwd(ctcf_kn_wd)}
                                                             
                                     df <- read.table(data, header=TRUE)
                                     df_2 <- df %>% select(c(1:4, 6, 7, 5))  
@@ -56,7 +57,7 @@ library('viridisLite', lib="/home/jcayford/r_libs")
                 # Function to get the mid-points of the raw data and change the column names
                         raw_import_cleanup <- function(state){
                                 setwd(raw_data_wd)
-                                data <- paste(state, "_chr", chr_num,"_NONE.txt" , sep="")
+                                data <- paste0(state, "_chr", chr_num,"_NONE.txt")
                                 df <- read.table(data)
                                 df_1 <- data.frame(df[,1]+2500, df[,2]+2500, df[,3])
                                 colnames(df_1) <- c("fragmentMid1", "fragmentMid2", "contactCount");gc();
@@ -66,7 +67,7 @@ library('viridisLite', lib="/home/jcayford/r_libs")
 
                 # Function to combined the raw counts of the other disease state
                         contact_combining <- function(state){
-                                        if(state=="healthy"){
+                                        if(state==comp_a){
                                                 df <- fithic_h
                                                 df2 <- d_raw
                                                 col_names <- c("h_contactCount", "d_contactCount")
@@ -99,13 +100,17 @@ library('viridisLite', lib="/home/jcayford/r_libs")
         # Setting the working directories and q_value threshold
                                 
                 main_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw"
-                healthy_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/healthy/fithic_10k_2mb"
-                disease_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/disease/fithic_10k_2mb"
+                healthy_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/kr_balanced/fithic/kr_10kb_2mb"
+                disease_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/balanced/disease/fithic_10k_2mb"
+                ctcf_ko_wd <- "/home/jcayford/HCM/Analysis/Fithic_Raw/balanced/ctcf_ko/fithic_10k_2mb"
                 raw_data_wd <- "/home/jcayford/HCM/Analysis/Juicer/indiv_chr/none_normalized"
                 export_wd <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes"
                 plot_wd <- "/home/jcayford/HCM/Analysis/HiC_R/plots"
                 
-                q_value <- 0.1             
+                q_value <- 0.1  
+
+                comp_a <- "healthy"
+                comp_b <- "disease"           
 
 
         # For loop to complete each chromosome in the analysis
@@ -113,16 +118,16 @@ library('viridisLite', lib="/home/jcayford/r_libs")
                     chr_num <- i
                     print(paste(Sys.time(), "..........starting Chromosome: ", chr_num, sep=""))
                             # Importing the data from Fit-HiC
-                                    fithic_h <- fithic_import("healthy")
-                                    fithic_d <- fithic_import("disease")           
+                                    fithic_h <- fithic_import(comp_a)
+                                    fithic_d <- fithic_import(comp_b)           
                                     
                             # Importing the raw data
-                                    d_raw <- raw_import_cleanup("disease")
-                                    h_raw <- raw_import_cleanup("healthy")
+                                    d_raw <- raw_import_cleanup(comp_a)
+                                    h_raw <- raw_import_cleanup(comp_b)
 
                             # Generating the combined file between healthy/disease and determining the count difference          
-                                    fithic_h <- contact_combining("healthy")
-                                    fithic_d <- contact_combining("disease")
+                                    fithic_h <- contact_combining(comp_a)
+                                    fithic_d <- contact_combining(comp_b)
 
                             # combining the two data.frames and looking for where both windows were found with FitHiC and exporting the data                           
                                     print(paste(Sys.time(), "..........combining files",sep=""))
@@ -142,16 +147,16 @@ library('viridisLite', lib="/home/jcayford/r_libs")
                                 print(paste(Sys.time(), "..........exporting files for chromosome: ", chr_num,sep=""))
 
                                     setwd(export_wd)
-                                    write.table(df_final2, paste("FitHiC_chr", chr_num, "_qval", q_value, ".txt", sep=""), col.names=TRUE, row.names=FALSE, quote=FALSE)
+                                    write.table(df_final2, paste0("FitHiC_", comp_a, "_", comp_b, "chr", chr_num, "_qval", q_value, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
                             
                             # Saving a plot fo the counts
                             setwd(plot_wd)
                             ggplot(df_final2, aes(x=-log2(h_contactCount), y=-log2(d_contactCount), col=(h_contactCount - d_contactCount))) +
                                     geom_point(size=0.75) +
                                     theme +
-                                    scale_x_continuous(name="-log2 Healthy Contact Counts") +
-                                    scale_y_continuous(name="-log2 Disease Contact Counts") +
-                                    ggtitle(paste("Disease vs Healthy Counts | chr", chr_num, " | q=", q_value, sep="")) +
+                                    scale_x_continuous(name=paste0("-log2 ", comp_a, " Contact Counts")) +
+                                    scale_y_continuous(name=paste0("-log2 ", comp_b, " Contact Counts")) +
+                                    ggtitle(paste0(comp_a " vs ", comp_b, " Counts | chr", chr_num, " | q=", q_value)) +
                                     labs(color="Count Sub", size=0.5) +                       
                                     scale_colour_gradientn(colors = viridis(256, option = "D", direction = -1))
                             ggsave(paste("FitHiC_chr", chr_num, "_qval", q_value, ".png", sep=""))
