@@ -10,7 +10,7 @@ library('tidyverse', lib="/home/jcayford/r_libs")
     # Function to filter out the regions which are 1 bin away from each other
         # df_a and df_b are the inputs of healthy or disease which have already been filtered for the chromosome
             overlaps_func<- function(df_a, df_b, row_line){     
-                    df_subs <- data.frame(df_a, "bin1"=as.numeric(df_a[,2]) - as.numeric(df_b[i,2]), "bin2"=as.numeric(df_a[,5]) - as.numeric(df_b[i,5]))          
+                    df_subs <- data.frame(df_a, "bin1"=as.numeric(df_a[,2]) - as.numeric(df_b[row_line,2]), "bin2"=as.numeric(df_a[,5]) - as.numeric(df_b[row_line,5]))          
                     df_subs %>% filter(bin1 == 0 | bin1 == 5000 | bin1== -5000, bin2 == 0 | bin2 == 5000 | bin2 == -5000)
             }
 

@@ -124,7 +124,7 @@ library('viridisLite')
                 #                    df_c(hic_data_a, 4), df_c(hic_data_a, 5), df_c(hic_data_a, 6),
                 #                    df_c(hic_data_a, 7), df_c(hic_data_a, 8), df_c(hic_data_a, 9))               
                 #colnames(hic_data) <- colnames(hic_data_a)           
-                hic_data <- hic_data %>% filter(q.value < filter_qval)
+                hic_data <- hic_data_a %>% filter(q.value < filter_qval)
 
 
         # Filtering FitHiC data with the ChIP-Seq Peaks
@@ -192,6 +192,10 @@ library('viridisLite')
                 subs[(subs$sub_a > contact_thresh & subs$sub_b > contact_thresh), 16] <- "healthy"
                 subs[(subs$sub_b < -contact_thresh & subs$sub_c < -contact_thresh), 16] <- "ctcf_ko"
                 subs[is.na(subs)] <- "all"
+
+                setwd(hic_data_directory)
+                write.table(subs, paste0("hic_contacts_", tf, "_all_merged_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+
             # Filtering out all the common and specfic loops for export
                 disease_loops <- subs %>% filter(cond == "disease" | cond == "all") %>% select(c(1:6))
                 healthy_loops <- subs %>% filter(cond == "healthy" | cond == "all") %>% select(c(1:6))
