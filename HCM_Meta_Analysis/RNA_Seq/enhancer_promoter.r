@@ -23,7 +23,7 @@
                         if(mid == 1){mids <- 2}
                         if(mid == 2){mids <- 4}
                             df_subs <- data.frame(input_df, "mid"=abs(input_df[, mids]-df_b[row,2]), "enhancer"=df_b[row, 2], "gene"=df_b[row,4])
-                            df_subs %>% filter(mid == 0 | mid == 5000 | mid == 10000)
+                            df_subs %>% filter(mid == 0 | mid == 5000)
                     }
 
                 # Selecting the condition. This is for post overlaps. This will give a common condition which is not specific to only 1 selected condition
@@ -36,7 +36,7 @@
                         if(mid == 1){mids <- 2}
                         if(mid == 2){mids <- 4}
                             df_subs <- data.frame(input_df, "mid"=abs(input_df[, mids]-df_b[row,2]))
-                            df_subs %>% filter(mid == 0 | mid == 5000 | mid == 10000)
+                            df_subs %>% filter(mid == 0 | mid == 5000)
                     }
 
                 # Function to complete the overlaps with an input with 2 columns (chr and position)
@@ -60,13 +60,7 @@
                         output
                     }
 
-                # Selecting and outputting a file. CAUTION USES 2 INDEPENDENT FUNCTIONS!
-                    select_output_func <- function(df, status, out_file){
-                        df_loops <- status_select(all_chr_overlaps, status)
-                        setwd(export_directory)
-                        final_loop_export(df_loops, out_file)
-                    }
-
+               
 #
 
             
@@ -91,7 +85,7 @@
 
 # Uploading the FitHiC merged file. This has a q value of 0.005
     setwd(fithic_directory)
-    fithic <- read.table("hic_contacts_mef2a_all_merged_q0.005.txt", header=TRUE)
+    fithic <- read.table("hic_contacts_mef2a_all_q0.01.txt", header=TRUE)
 
 
 
@@ -140,17 +134,57 @@
 
 
 
-select_output_func(all_chr_enhancers, "disease", "disease_enhancers")
-select_output_func(all_chr_enhancers, "healthy", "healthy_enhancers")
-select_output_func(all_chr_enhancers, "ctcf_ko", "ctcf_ko_enhancers")
-
-select_output_func(all_chr_promoters, "disease", "disease_promoters")
-select_output_func(all_chr_promoters, "healthy", "healthy_promoters")
-select_output_func(all_chr_promoters, "ctcf_ko", "ctcf_ko_promoters")
 
 
 
 
+all_e <- all_chr_enhancers
+all_p <- data.frame(all_chr_promoters, "enhancer"="promoter", "gene"="promoter")
+
+all_chr_merged <- rbind(all_e, all_p)
+
+contact_thresh <- 3
+
+
+   subs <- data.frame(all_chr_merged, "sub_a"=(all_chr_merged$h.contactCount - all_chr_merged$d.contactCount),
+                                                    "sub_b"=(all_chr_merged$h.contactCount - all_chr_merged$c.contactCount),     
+                                                        "sub_c"=(all_chr_merged$d.contactCount - all_chr_merged$c.contactCount), "cond"=NA)
+
+            # Determining specific loops based on the subtraction of the different conditions
+                subs[(subs$sub_a < -contact_thresh & subs$sub_c > contact_thresh), 19] <- "disease"
+                subs[(subs$sub_a > contact_thresh & subs$sub_b > contact_thresh), 19] <- "healthy"
+                subs[(subs$sub_b < -contact_thresh & subs$sub_c < -contact_thresh), 19] <- "ctcf_ko"
+                subs[is.na(subs)] <- "all"
+
+
+
+
+  final_loop_export <- function(input_df, prom_ench, disease_state, export){   
+    if(prom_ench == "enhancer"){output_df <- input_df %>% filter(gene != prom_ench, cond==disease_state) %>% select(c(1:6))}
+    if(prom_ench == "promoter"){output_df <- input_df %>% filter(gene == prom_ench, cond==disease_state) %>% select(c(1:6))}
+
+    output_df <- output_df %>% arrange(chr1, fragmentMid1, fragmentMid2)
+    
+    if(export=="y" | export=="yes"){write.table(output_df, paste0("hic_contacts_", disease_state, "_", prom_ench, "_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)}
+    if(export=="n" | export=="no"){output_df}
+}
+
+
+  
+setwd(export_directory)
+final_loop_export(subs, "enhancer", "healthy", "yes")
+final_loop_export(subs, "promoter", "healthy", "yes")
+
+final_loop_export(subs, "enhancer", "disease", "yes")
+final_loop_export(subs, "promoter", "disease", "yes")
+
+final_loop_export(subs, "enhancer", "ctcf_ko", "yes")
+final_loop_export(subs, "promoter", "ctcf_ko", "yes")
+
+
+
+
+test <- final_loop_export(subs, "enhancer", "disease", "no")
 
 
 
@@ -162,4 +196,36 @@ select_output_func(all_chr_promoters, "ctcf_ko", "ctcf_ko_promoters")
     bgzip hic_contacts_ctcf_ko_enhancers_merged_q0.005_out_washU.bed
     tabix -p bed hic_contacts_ctcf_ko_enhancers_merged_q0.005_out_washU.bed.gz
 
+
+
+
+
+
+
+
+
+
+# End of the script. Go to the export_directory and run the awk script and then use Samtools to bgzip and tabix.
+# Combined values... From there you can import them into a .json for washU visualization
+    awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","$NF"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","$NF"\t"(NR-1)"\t."}}}' hic_contacts_JC_TEST_merged_q0.005.txt | sort -k1,1 -k2,2n > hic_contacts_JC_TEST_merged_q0.005_out_washU.bed
+    bgzip hic_contacts_JC_TEST_merged_q0.005_out_washU.bed
+    tabix -p bed hic_contacts_JC_TEST_merged_q0.005_out_washU.bed.gz
+
+
+cp *_out_wash* /mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/washU_filtered/
+
+
+
+h_p <- read.table("hic_contacts_healthy_promoter_q0.005.txt", header=TRUE)
+h_e <- read.table("hic_contacts_healthy_enhancer_q0.005.txt", header=TRUE)
+
+
+
+h_p_a <- data.frame(h_p[,1:4], "score"=50)
+h_p_b <- data.frame(h_e[,1:4], "score"=10)
+
+test <- rbind(h_p_b, h_p_a)
+test2 <- test %>% arrange(chr1, fragmentMid1, fragmentMid2) %>% distinct(chr1, fragmentMid1, fragmentMid2, .keep_all=TRUE)
+
+write.table(test2, paste0("hic_contacts_", "JC_TEST_merged_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
 

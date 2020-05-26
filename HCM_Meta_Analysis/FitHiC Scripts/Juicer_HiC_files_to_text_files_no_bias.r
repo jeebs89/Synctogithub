@@ -34,6 +34,7 @@ library('tidyverse', lib="/home/jcayford/r_libs")
                         # Generation of the fragments data.frame
                                 fragments_pre <- data.frame(df[,1]+2500, df[,3])
                                 colnames(fragments_pre) <- c("fragmentMid", "ContactCount")
+                                fragments_pre[is.na(fragments_pre)]=0
                                 fragments_mid <- fragments_pre %>% group_by(fragmentMid) %>% summarise(ContactCount=sum(ContactCount))
                                 fragments <- data.frame("chr1"=chromosome, "extra"=1, round_to(fragments_mid, to=1), "extra.1"=1)
                                 fragments[is.na(fragments)]=0          
