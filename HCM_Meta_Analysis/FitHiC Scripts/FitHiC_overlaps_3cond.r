@@ -152,6 +152,7 @@ library('viridisLite')
     ####  Merging of the files with a given bin - default in the script is 2 bins (10kb)
 
         # Reading in the merged bed file from bedtools
+            setwd(bed_export_directory)
             frag1 <- read.table("mef2a_kr_all_merged.bed"); colnames(frag1) <- c("chr1", "start", "end")
             hic_filtered[is.na(hic_filtered)] <- 0
 
@@ -192,6 +193,7 @@ library('viridisLite')
                 subs[(subs$sub_a > contact_thresh & subs$sub_b > contact_thresh), 16] <- "healthy"
                 subs[(subs$sub_b < -contact_thresh & subs$sub_c < -contact_thresh), 16] <- "ctcf_ko"
                 subs[is.na(subs)] <- "all"
+
 
                 setwd(hic_data_directory)
                 write.table(subs, paste0("hic_contacts_", tf, "_all_merged_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
