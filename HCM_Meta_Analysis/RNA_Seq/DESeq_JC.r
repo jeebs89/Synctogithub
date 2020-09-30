@@ -1,47 +1,57 @@
 
-library("DESeq2")
+
 library('tidyverse', lib="/home/jcayford/r_libs")
+library("DESeq2")
+library('viridisLite')
 
 
 
-## RNA-seq analysis with DESeq2
-## Stephen Turner, @genetics_blog
+    # Functions
+            # Rounding data
+                round_to <- function(x, to = window_length) round(x/to)*to
+            # Quick head() with the amount of rows
+                w <- function(x){print(head(x));nrow(x)}
+ 
 
-# RNA-seq data from GSE52202
-# http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=gse52202. All patients with
-# ALS, 4 with C9 expansion ("exp"), 4 controls without expansion ("ctl")
 
-# Import & pre-process ----------------------------------------------------
 
-# Import data from featureCounts
-## Previously ran at command line something like this:
-## featureCounts -a genes.gtf -o counts.txt -T 12 -t exon -g gene_id GSM*.sam
-countdata <- read.table("counts.txt", header=TRUE, row.names=1)
 
-# Remove first five columns (chr, start, end, strand, length)
-countdata <- countdata[ ,6:ncol(countdata)]
 
-# Remove .bam or .sam from filenames
-colnames(countdata) <- gsub("\\.[sb]am$", "", colnames(countdata))
+rawcounts_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/rosagarrido_rnaseq/4.Output/counts"
 
-# Convert to matrix
-countdata <- as.matrix(countdata)
-head(countdata)
 
-# Assign condition (first four are controls, second four contain the expansion)
-(condition <- factor(c(rep("ctl", 4), rep("exp", 4))))
 
-# Analysis with DESeq2 ----------------------------------------------------
 
-library(DESeq2)
+
+setwd(rawcounts_wd)
+
+# Opening up the raw counts file and setting as matrix
+    counts <- read.table("raw_counts.csv", sep=",", header=T, row.names=1)
+    counts_2 <- counts[, c(1:3, 8:10)]
+    countdata <- as.matrix(counts_2)
+
+# Assigning condition (first 3 are controls, next are TAC)
+    (condition <- factor(c(rep("ctl", 3), rep("tac", 3))))
+
 
 # Create a coldata frame and instantiate the DESeqDataSet. See ?DESeqDataSetFromMatrix
-(coldata <- data.frame(row.names=colnames(countdata), condition))
-dds <- DESeqDataSetFromMatrix(countData=countdata, colData=coldata, design=~condition)
-dds
+    (coldata <- data.frame(row.names=colnames(countdata), condition))
+    dds <- DESeqDataSetFromMatrix(countData=countdata, colData=coldata, design=~condition)
+    dds
+
+
+
+
+
+# Export wd: 
+export_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/DESeq"
+
+
 
 # Run the DESeq pipeline
-dds <- DESeq(dds)
+    dds <- DESeq(dds)
+
+
 
 # Plot dispersions
 png("qc-dispersions.png", 1000, 1000, pointsize=20)
@@ -52,6 +62,8 @@ dev.off()
 rld <- rlogTransformation(dds)
 head(assay(rld))
 hist(assay(rld))
+
+
 
 # Colors for plots below
 ## Ugly:
@@ -115,7 +127,7 @@ resdata <- merge(as.data.frame(res), as.data.frame(counts(dds, normalized=TRUE))
 names(resdata)[1] <- "Gene"
 head(resdata)
 ## Write results
-write.csv(resdata, file="diffexpr-results.csv")
+write.csv(resdata, file="healthy_hcm_deseq_result.csv")
 
 ## Examine plot of p-values
 hist(res$pvalue, breaks=50, col="grey")
@@ -123,6 +135,9 @@ hist(res$pvalue, breaks=50, col="grey")
 ## Examine independent filtering
 attr(res, "filterThreshold")
 plot(attr(res,"filterNumRej"), type="b", xlab="quantiles of baseMean", ylab="number of rejections")
+
+
+
 
 ## MA plot
 ## Could do with built-in DESeq2 function:
@@ -136,22 +151,56 @@ maplot <- function (res, thresh=0.05, labelsig=TRUE, textcx=1, ...) {
     with(subset(res, padj<thresh), textxy(baseMean, log2FoldChange, labs=Gene, cex=textcx, col=2))
   }
 }
-png("diffexpr-maplot.png", 1500, 1000, pointsize=20)
-maplot(resdata, main="MA Plot")
+png("healthy_hcm_p005.png", 1500, 1000, pointsize=20)
+maplot(resdata, main="Heathly vs HCM MA Plot - p:0.05")
 dev.off()
 
 ## Volcano plot with "significant" genes labeled
-volcanoplot <- function (res, lfcthresh=2, sigthresh=0.05, main="Volcano Plot", legendpos="bottomright", labelsig=TRUE, textcx=1, ...) {
-  with(res, plot(log2FoldChange, -log10(pvalue), pch=20, main=main, ...))
-  with(subset(res, padj<sigthresh ), points(log2FoldChange, -log10(pvalue), pch=20, col="red", ...))
-  with(subset(res, abs(log2FoldChange)>lfcthresh), points(log2FoldChange, -log10(pvalue), pch=20, col="orange", ...))
-  with(subset(res, padj<sigthresh & abs(log2FoldChange)>lfcthresh), points(log2FoldChange, -log10(pvalue), pch=20, col="green", ...))
-  if (labelsig) {
-    require(calibrate)
-    with(subset(res, padj<sigthresh & abs(log2FoldChange)>lfcthresh), textxy(log2FoldChange, -log10(pvalue), labs=Gene, cex=textcx, ...))
-  }
-  legend(legendpos, xjust=1, yjust=1, legend=c(paste("FDR<",sigthresh,sep=""), paste("|LogFC|>",lfcthresh,sep=""), "both"), pch=20, col=c("red","orange","green"))
+volcanoplot <- function (res, lfcthresh=2, sigthresh=0.005, main="Healthy vs HCM DESeq Genes", legendpos="bottomright", labelsig=TRUE, textcx=1, ...) {
+  with(res, plot(log2FoldChange, -log10(pvalue), pch=16, col="gray30", main=main, ...))
+  with(subset(res, padj<sigthresh ), points(log2FoldChange, -log10(pvalue), pch=16, col="firebrick", ...))
+  #with(subset(res, abs(log2FoldChange)>lfcthresh), points(log2FoldChange, -log10(pvalue), pch=16, col="orange", ...))
+  #with(subset(res, padj<sigthresh & abs(log2FoldChange)>lfcthresh), points(log2FoldChange, -log10(pvalue), pch=16, col="dodgerblue", ...))
+  #if (labelsig) {
+  #  require(calibrate)
+  #with(subset(res, padj<sigthresh & abs(log2FoldChange)>lfcthresh), textxy(log2FoldChange, -log10(pvalue), labs=Gene, cex=textcx, ...))
+  #}
+  #legend(legendpos, xjust=1, yjust=1, legend=c(paste("FDR<",sigthresh,sep=""), paste("|LogFC|>",lfcthresh,sep=""), "both"), pch=16, col=c("firebrick","orange","dodgerblue"))
+  legend(legendpos, xjust=1, yjust=1, legend=c(paste("FDR<",sigthresh,sep="")), pch=16, col=c("firebrick"))
 }
-png("diffexpr-volcanoplot.png", 1200, 1000, pointsize=20)
-volcanoplot(resdata, lfcthresh=1, sigthresh=0.05, textcx=.8)
+
+
+
+#png("diffexpr-volcanoplot.png", 1200, 1000, pointsize=20)
+#volcanoplot(resdata, lfcthresh=1, sigthresh=0.005, textcx=.8, cex=0.6)
+#dev.off()
+
+
+resdata_vol <- resdata
+
+fc_filter <- 2.5
+
+resdata_vol$log2FoldChange[(resdata_vol$log2FoldChange > fc_filter)] <- fc_filter
+resdata_vol$log2FoldChange[(resdata_vol$log2FoldChange < -fc_filter)] <- (-fc_filter)
+
+png("healthy_HCM_volcanoplot_2.5fcthresh.png", 1200, 1000, pointsize=20)
+volcanoplot(resdata_vol, lfcthresh=1, sigthresh=0.005, textcx=.8, cex=0.6, labelsig=TRUE)
 dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

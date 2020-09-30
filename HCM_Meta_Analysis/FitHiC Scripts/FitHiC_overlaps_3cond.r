@@ -69,8 +69,8 @@ library('viridisLite')
                 }
 
             # Exporting the loops for washU visualization
-                final_loop_export <- function(input_df, disease_state){
-                    write.table(input_df, paste0("hic_contacts_", tf, "_", disease_state, "_merged_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+                final_loop_export <- function(input_df, disease_state, date){
+                    write.table(input_df, paste0("hic_contacts_", tf, "_", disease_state, "_merged_q", filter_qval, "_", date, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
                 }
 
                 
@@ -192,29 +192,35 @@ library('viridisLite')
                 subs[(subs$sub_a < -contact_thresh & subs$sub_c > contact_thresh), 16] <- "disease"
                 subs[(subs$sub_a > contact_thresh & subs$sub_b > contact_thresh), 16] <- "healthy"
                 subs[(subs$sub_b < -contact_thresh & subs$sub_c < -contact_thresh), 16] <- "ctcf_ko"
+                
+                subs[(subs$sub_b > contact_thresh & subs$sub_c > contact_thresh), 16] <- "h_d"
+                subs[(subs$sub_a > contact_thresh & subs$sub_c < -contact_thresh), 16] <- "h_c"
+                subs[(subs$sub_a < -contact_thresh & subs$sub_b < -contact_thresh), 16] <- "d_c"
+  
                 subs[is.na(subs)] <- "all"
 
-
                 setwd(hic_data_directory)
-                write.table(subs, paste0("hic_contacts_", tf, "_all_merged_q", filter_qval, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+                write.table(subs, paste0("hic_contacts_", tf, "_all_merged_q", filter_qval, "_28sep2020.txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
 
             # Filtering out all the common and specfic loops for export
-                disease_loops <- subs %>% filter(cond == "disease" | cond == "all") %>% select(c(1:6))
-                healthy_loops <- subs %>% filter(cond == "healthy" | cond == "all") %>% select(c(1:6))
-                ctcf_ko_loops <- subs %>% filter(cond == "ctcf_ko" | cond == "all") %>% select(c(1:6))
+
+                disease_loops <- subs %>% filter(cond == "disease" | cond == "all" | cond == "h_d") %>% select(c(1:6))
+                healthy_loops <- subs %>% filter(cond == "healthy" | cond == "all" | cond == "h_d") %>% select(c(1:6))
+                #ctcf_ko_loops <- subs %>% filter(cond == "ctcf_ko" | cond == "all") %>% select(c(1:6))
             
             # Exporting the loops for visualization on washU tracks
 
-                setwd(export_directory)
-                final_loop_export(disease_loops, "disease")
-                final_loop_export(healthy_loops, "healthy")
-                final_loop_export(ctcf_ko_loops, "ctcf_ko")
+                setwd(hic_data_directory)
+                final_loop_export(disease_loops, "disease", "29SEP2020")
+                final_loop_export(healthy_loops, "healthy", "29SEP2020")
+                #final_loop_export(ctcf_ko_loops, "ctcf_ko")
 
     # End of the script. Go to the export_directory and run the awk script and then use Samtools to bgzip and tabix.
     # From there you can import them into a .json for washU visualization
-        awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' hic_contacts_mef2a_healthy_merged_q0.005.txt | sort -k1,1 -k2,2n > hic_contacts_mef2a_healthy_merged_q0.005_out_washU.bed
-        bgzip hic_contacts_mef2a_healthy_merged_q0.005_out_washU.bed
-        tabix -p bed hic_contacts_mef2a_healthy_merged_q0.005_out_washU.bed.gz
+    # conda activate samtools
+        awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' hic_contacts_mef2a_healthy_merged_q0.005_29SEP2020.txt | sort -k1,1 -k2,2n > hic_contacts_mef2a_healthy_merged_q0.005_29SEP2020_out_washU.bed
+        bgzip hic_contacts_mef2a_healthy_merged_q0.005_29SEP2020_out_washU.bed
+        tabix -p bed hic_contacts_mef2a_healthy_merged_q0.005_29SEP2020_out_washU.bed.gz
 
 
 

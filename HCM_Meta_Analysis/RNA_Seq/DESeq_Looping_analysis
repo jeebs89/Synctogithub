@@ -1,0 +1,65 @@
+
+library('tidyverse', lib="/home/jcayford/r_libs")
+
+
+
+
+    # Functions
+            # Rounding data
+                round_to <- function(x, to = window_length) round(x/to)*to
+            # Quick head() with the amount of rows
+                w <- function(x){print(head(x));nrow(x)}         
+
+    #
+
+
+
+# Importing the looping data for MEF2a
+    hic_data_directory <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes_all_kr"
+    setwd(hic_data_directory)
+    all_loops_a <- read.table("hic_contacts_mef2a_all_merged_q0.005_28sep2020.txt", header=T)
+    all_loops <- all_loops_a %>% filter(cond=="disease" | cond=="healthy" | cond=="h_d") %>% select(c(1:8, 10:12,16))
+
+# Importing the Genes from DESeq/RNA analysis
+    deseq_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/DESeq"
+    setwd(deseq_wd)
+    all_genes_a <- read.table("top_1886_genes_withTPM_28SEP2020.txt", header=T)
+    all_genes <- data.frame("chr1"=paste0("chr", all_genes_a$chromosome_name), all_genes_a[,c(1:8, 11:12)])
+
+# Generating the gene ID and gene name with the zscores
+    all_genes_zscore_a <- read.table("top_1886_genes_zscores_28SEP2020.txt", header=T)
+    all_genes_unique <- all_genes %>% distinct(mgi_symbol, .keep_all=TRUE)
+    all_genes_zscore <- data.frame(all_genes_unique[,c(2,9)], all_genes_zscore_a)
+
+
+
+
+loop_rna_overlaps_func <- function(input_a, input_b, row){
+    loops <- input_a %>% filter(fragmentMid1 < input_b$transcript_start[row] & fragmentMid2 > input_b$transcript_end[row])
+    if(nrow(loops)==0){NULL}
+    if(nrow(loops)>0){cbind(loops, input_b[row,c(2,9,3:8, 10:11)])}
+}
+
+
+gene_rna_loops <- NULL
+for(j in 1:19){
+# selecting chr1
+    all_loops_1 <- all_loops %>% filter(chr1==paste0("chr", j))
+    all_genes_1 <- all_genes %>% filter(chr1==paste0("chr", j))
+
+        chr_genes <- NULL
+        for(i in 1:nrow(all_genes_1)){
+            chr_genes <- rbind(chr_genes, loop_rna_overlaps_func(all_loops_1, all_genes_1, i))
+        }
+    gene_rna_loops <- rbind(gene_rna_loops, chr_genes)
+
+}
+
+unique_gene_rna_loops <- gene_rna_loops %>% distinct(mgi_symbol)
+### NEED TO GET THE DESeq PVALUES!!!!!
+
+
+
+test <- left_join(unique_gene_rna_loops, all_genes_zscore, by="mgi_symbol")
+
+
