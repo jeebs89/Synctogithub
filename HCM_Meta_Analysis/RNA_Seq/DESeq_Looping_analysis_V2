@@ -1,0 +1,372 @@
+
+
+
+library('tidyverse', lib="/home/jcayford/r_libs")
+library('viridisLite')
+library('readr')
+library('pheatmap')
+library('gplots')
+
+
+
+
+    # Functions
+            # Rounding data
+                round_to <- function(x, to = window_length) round(x/to)*to
+            # Quick head() with the amount of rows
+                w <- function(x){print(head(x));nrow(x)}                
+            # Getting the loops with genes
+                    loop_rna_overlaps_func <- function(input_a, input_b, row){
+                        loops <- input_a %>% filter(fragmentMid1 < input_b$transcript_start[row] & fragmentMid2 > input_b$transcript_end[row])
+                        if(nrow(loops)==0){NULL}
+                        if(nrow(loops)>0){cbind(loops, input_b[row,])}
+                    }
+            # Calculating z-scores
+                        zscore_sample <- function(df, row, column, mean_set, sd_set){
+                            (df[row,column] - mean_set)/sd_set
+                        }
+                        zscore_row <- function(df, row, columns){
+                            scores <- NULL
+                            a <- mean(as.numeric(df[row,]))
+                            b <- sd(df[row,])
+
+                                for(i in 1:columns){
+                                    scores <- cbind(scores, zscore_sample(df, row, i, a, b))
+                                }
+                                scores
+                        }
+        #
+
+
+
+
+
+
+        
+
+    #
+
+
+
+    hic_data_directory <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes_all_kr"
+    deseq_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/DESeq"
+    tpm_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/rosagarrido_rnaseq/4.Output/counts"
+ 
+# Today's date 
+today <- Sys.Date()
+today_f <- format(today, format="%d_%b_%Y")
+
+
+
+# Importing the looping data for MEF2a
+
+    setwd(hic_data_directory)
+    all_loops_a <- read.table("hic_contacts_mef2a_all_merged_q0.005_28sep2020.txt", header=T)
+    all_loops <- all_loops_a %>% filter(cond=="disease" | cond=="healthy" | cond=="h_d") %>% select(c(1:8, 10:12,16))
+
+# Importing the Genes from DESeq/RNA analysis
+
+    setwd(tpm_wd)
+    all_genes_a <- read.table("TPM_counts.csv", header=T, sep=",")
+    colnames(all_genes_a)[1] <- "Gene"
+
+    setwd(deseq_wd)
+    deseq_result <- read.table("Top_unique_genes_DESeq_counts_05_Oct_2020.txt", header=T, sep=" ")
+    deseq_genes <- left_join(deseq_result[,c(1:6, 12, 14:15)], all_genes_a[,c(1:4, 9:11)], by="Gene")
+
+
+    # Filtering the TPM based on the top 85% of expression
+        mean_TPM <- data.frame(deseq_genes, "h_tpm_mean"=rowMeans(deseq_genes[,10:12]), "d_tpm_mean"=rowMeans(deseq_genes[,13:15]))
+        filtered_mean_tpm <- mean_TPM %>% filter(h_tpm_mean > quantile(mean_TPM$h_tpm_mean, 0.15) | d_tpm_mean > quantile(mean_TPM$d_tpm_mean, 0.15))
+
+
+
+    zscores_a <- filtered_mean_tpm[,10:15]
+    all_scores <- NULL
+        for(i in 1:nrow(zscores_a)){
+            all_scores <- rbind(all_scores, zscore_row(zscores_a, i, 6))
+        }
+        colnames(all_scores) <- colnames(zscores_a[1:6])
+
+
+
+    all_genes <- data.frame("chr1"=paste0("chr", filtered_mean_tpm$chromosome_name), filtered_mean_tpm[,c(1:6, 8:9, 16:17)], all_scores)
+
+
+
+
+
+
+
+    gene_rna_loops <- NULL
+    for(j in 1:19){
+        print(paste(Sys.time(), "..........matching the loops for chromosome: ", j,sep=""))
+
+        all_loops_1 <- all_loops %>% filter(chr1==paste0("chr", j))
+        all_genes_1 <- all_genes %>% filter(chr1==paste0("chr", j))
+
+            chr_genes <- NULL
+            for(i in 1:nrow(all_genes_1)){
+                chr_genes <- rbind(chr_genes, loop_rna_overlaps_func(all_loops_1, all_genes_1, i))
+            }
+        gene_rna_loops <- rbind(gene_rna_loops, chr_genes)
+
+    }
+
+
+
+# Writing the whole table in case need to go back
+write.table(gene_rna_loops, paste0("All_loop_rna_overlaps_master_", today_f, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+gene_rna_loops_b <- gene_rna_loops[c(13:19, 1:2,4, 20, 21, 5:12, 22:23,24:29)]
+uniq_trans_loops <- gene_rna_loops_b %>% distinct(Gene, peak, .keep_all=TRUE)
+
+
+
+### 5OCT2020:
+
+# Adding the h or d loops for the meta data
+      gene_totals <- 50
+    test2 <- uniq_trans_loops %>% arrange(padj)
+    
+    test3 <- test2 %>% distinct(mgi_symbol, .keep_all=TRUE)
+
+
+
+
+    d_df <- test3 %>% filter((d_tpm_mean-h_tpm_mean)>0) %>% arrange(padj) %>% select(c(1,2,5,7,9:10,20:28))
+    h_df <- test3 %>% filter((h_tpm_mean-d_tpm_mean)>0) %>% arrange(padj) %>% select(c(1,2,5,7,9:10,20:28))
+
+
+
+    #test3 <- test2 %>% filter(padj < 0.02)
+    #test4 <- data.frame(test3a[,c(8:13)], row.names=test3a[,1])
+
+
+
+    #number of genes
+  
+
+    d_h_df_a <- rbind(d_df[1:gene_totals,], h_df[1:gene_totals,])
+    d_h_df <- data.frame(d_h_df_a[, c(4, 7:15)], row.names=d_h_df_a[,2])
+
+
+
+
+
+        # Writing the table for the genes based on the padj value
+        write.table(test3a, paste0("Top_loop_rna_overlaps_padj002_", today_f, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+
+
+        # Setting up the conditions for the heamat
+
+        # Meta data information
+            meta_data <- data.frame("State"=c(rep("Healthy", 3), rep("HCM", 3)))
+            Var1 <- c("dodgerblue", "firebrick3")
+            names(Var1) <- c("Healthy", "HCM")
+            anno_cols <- list(State = Var1)
+
+
+        # Meta data for the genes
+            meta_data_genes <- data.frame(d_h_df[,2], row.names=d_h_df_a[,2])
+            Var2 <- c("#d8b365", "#5ab4ac", "grey")
+            names(Var2) <- c("healthy", "disease", "h_d")
+            anno_cols_row <- list(Loop = Var2)
+            anno_cols_test <- list(State = Var1, Loop=Var2)
+
+
+
+        # The heatmap for RNA-Seq and HiC filtered regions
+
+
+        setwd(deseq_wd)
+
+        colors <- colorRampPalette(c("#1F00EB", "black", "#FFFB0F"))
+
+
+        png(paste0("Heatmap_genes_looping_with_genes_", today_f, ".png"),
+                        width=500, height=1700, unit="px")
+
+
+        pheatmap(d_h_df[,5:10], cluster_cols=T, 
+                cluster_rows=T, color = colors(75),
+                border_color=NA, clustering_method="complete", show_rownames=TRUE, show_colnames=FALSE,
+                main="Healthy vs HCM Heatmap", cellwidth = 35, #cellheight = 7.5,
+                annotation_col=meta_data, annotation_row=meta_data_genes, annotation_colors=anno_cols_test
+        )
+
+
+        dev.off()
+
+
+#
+
+
+
+
+
+
+
+# Doing the top genes of total RNA-Seq instead of individual
+   
+
+    test3a <- test3 %>% arrange(padj) %>% select(c(1,2,5,7,9:10,20:28))
+
+    mean_zscores <- data.frame(test3a, "h_zmean"=rowMeans(test3a[,10:12]),"d_zmean"=rowMeans(test3a[,13:15]))
+
+    test3b <- mean_zscores %>% filter(h_zmean)
+
+
+
+    test4 <- test3a[1:(2*gene_totals), ]
+    test4a <- data.frame(test4[, c(4, 7:15)], row.names=test4[,2])
+
+
+            # Meta data information
+                meta_data <- data.frame("State"=c(rep("Healthy", 3), rep("HCM", 3)))
+                Var1 <- c("dodgerblue", "firebrick3")
+                names(Var1) <- c("Healthy", "HCM")
+                anno_cols <- list(State = Var1)
+
+
+            # Meta data for the genes
+                meta_data_genes <- data.frame("Loop"=test4$cond, row.names=test4[,2])
+                Var2 <- c("#d8b365", "#5ab4ac", "grey")
+                names(Var2) <- c("healthy", "disease", "h_d")
+                anno_cols_row <- list(Loop = Var2)
+                anno_cols_test <- list(State = Var1, Loop=Var2)
+
+
+            pheatmap(test5a[1:40,5:10], cluster_cols=T, 
+                    cluster_rows=T, color = colors(75),
+                    border_color=NA, clustering_method="complete", show_rownames=TRUE, show_colnames=TRUE,
+                    main="Healthy vs HCM Heatmap", cellwidth = 35, #cellheight = 7.5,
+                    annotation_col=meta_data, annotation_row=meta_data_genes, annotation_colors=anno_cols_test
+            )
+#
+
+
+
+
+
+# Filtering using the standard deviations to be less than 0.6
+
+test2 <- uniq_trans_loops %>% arrange(padj)
+    
+    test3 <- test2 %>% distinct(mgi_symbol, .keep_all=TRUE)
+
+test4a <- data.frame(test3a[, c(2, 4, 7:15)])
+
+filtering_rna <- function(row, df){
+    data.frame("sd_h"=sd(df[row,6:8]), "sd_d"=sd(df[row,9:11]))
+
+}
+
+
+sds <- NULL
+for(i in 1:nrow(test4a)){
+    sds <- rbind(sds, filtering_rna(i, test4a))
+}
+
+test5 <- data.frame(test4a, sds)
+test5a <- test5 %>% filter(sd_h < 0.6 & sd_d < 0.6) %>% arrange(padj)
+test5b <- data.frame(test5a[,2:ncol(test5a)], row.names=test5a[,1])
+write.table(test5b, paste0("Top_loop_rna_overlaps_", today_f, ".txt"), col.names=TRUE, row.names=TRUE, quote=FALSE)
+
+
+# Meta data information
+    meta_data <- data.frame("State"=c(rep("Healthy", 3), rep("HCM", 3)), row.names=colnames(test5b[5:10]))
+    Var1 <- c("dodgerblue", "firebrick3")
+    names(Var1) <- c("Healthy", "HCM")
+    anno_cols <- list(State = Var1)
+
+
+# Meta data for the genes
+    meta_data_genes <- data.frame("Loop"=test5b$cond, row.names=test5a[,1])
+    Var2 <- c("#d8b365", "#5ab4ac", "grey")
+    names(Var2) <- c("healthy", "disease", "h_d")
+    anno_cols_row <- list(Loop = Var2)
+    anno_cols_test <- list(State = Var1, Loop=Var2)
+
+
+png(paste0("Heatmap_genes_looping_with_genes_top75_", today_f, ".png"),
+            width=500, height=1700, unit="px")
+
+
+pheatmap(test5b[1:75,5:10], cluster_cols=T, 
+        cluster_rows=T, color = colors(75),
+        border_color=NA, clustering_method="complete", show_rownames=TRUE, show_colnames=FALSE,
+        main="Healthy vs HCM Heatmap", #cellwidth = 35, #cellheight = 7.5,
+        annotation_col=meta_data, annotation_row=meta_data_genes, annotation_colors=anno_cols_test
+)
+
+dev.off()
+
+
+
+
+
+
+# TPM Export for counts data
+
+# deseq_genes is the TPM
+tpm_a <- data.frame("mgi_symbol"=row.names(test5b), test5b)
+tpm_b <- left_join(tpm_a, deseq_genes[,c(1, 10:15)], by="mgi_symbol")
+colnames(tpm_b) <- c(colnames(tpm_a), "tpm_h1", "tpm_h2", "tpm_h3", "tpm_d1", "tpm_d2", "tpm_d3")
+write.table(tpm_b, paste0("Top_loop_rna_overlaps_TPM_COUNTS", today_f, ".txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## GGplot for the adjusted pvalue threshold set in test3a
+
+      # GGplot settings
+                # Theme for general ggplot
+                    theme<-theme_classic() +
+                            theme(
+                                text = element_text(color = "grey20"),
+                                plot.title = element_text(hjust = 0.5),
+                                axis.text.x = element_text(size=rel(1.5)), 
+                                axis.text.y = element_text(size=rel(1.5), angle=90, hjust=0.5)
+                            )
+
+        #
+    #
+
+        # Plot Script
+            setwd(deseq_wd)
+            rowing <- c(1:nrow(test3))
+            
+            ggplot(test3, aes(x=rowing, y=padj)) +
+                    geom_point(size=0.75) +
+                    theme + 
+                    geom_line(aes(y=0.02), col="grey20", linetype="dotted") +
+                    labs(x="Gene",y="DESeq p.adjusted") 
+            
+            
+            
+            
+            
+            ggsave(paste0("padj_threshold_plot_", today_f, ".png"))
+
+##
+
+
+
+
+
+

@@ -153,3 +153,12 @@ write.table(short_unique_genes, paste0("top_", number_of_genes, "_unique_genes_w
 write.table(all_scores, paste0("top_", number_of_genes, "_genes_zscores_28SEP2020.txt"), col.names=TRUE, row.names=FALSE, quote=FALSE)
 
 
+
+
+
+
+
+
+
+
+

@@ -36,7 +36,9 @@ library('tidyverse', lib="/home/jcayford/r_libs")
 #
 # q.value threshold, since the input files have a threshold of 0.1
 qval_threshold <- 0.01
-date <- "30SEP2020"
+today <- Sys.Date()
+date <- format(today, format="%d_%b_%Y")
+
 
 # Column Names for export
 cols <- c("chr1", "fragmentMid1", "chr2", "fragmentMid2", "p.value", "q.value")
