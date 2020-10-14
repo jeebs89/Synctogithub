@@ -20,7 +20,7 @@ library(reshape2)
     #
 
     hic_data_directory <- "/home/jcayford/HCM/Analysis/HiC_R/chromosomes_all_kr"
-    deseq_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/DESeq"
+    deseq_const_wd <- "/mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/rna-seq/DESeq/Loop_Constraints"
  
 # Today's date 
 today <- Sys.Date()
@@ -41,45 +41,44 @@ loop_constraint <- 0.5
     filtered_loop_size <- data.frame(filtered_loop_size_a, "loop_size"=(filtered_loop_size_a[,4]-filtered_loop_size_a[,2]))
     all_t_size <- filtered_loop_size %>% arrange(loop_size) %>% select(c(2, 4, ncol(filtered_loop_size)))
 
-    if(loop_constraint > 0){all_t_size <- all_t_size %>% filter(loop_size < (loop_constraint*1000000))}
+
+
+loop_constraint <- c(0, 1.5, 1, 0.5)
+
+looping_df <- NULL
+for(i in 1:length(loop_constraint)){
+    loops <- NULL;loops_a <- NULL
+        if(loop_constraint[i] == 0){loops <- data.frame(all_t_size, "State"="Post_Filter_0")}
+        if(loop_constraint[i] > 0){
+                    loops_a <- all_t_size %>% filter(loop_size < (loop_constraint[i]*1000000))
+                    loops <- data.frame(loops_a, "State"=paste0("Post_Filter_", loop_constraint[i]))
+        }
+
+        looping_df <- rbind(looping_df, loops)
+}
+
+
+
 
 # Graphing the density of the loops
 a <- data.frame("State"="Pre_Filter", "loop_size"=all_size[,3])
-b <- data.frame("State"="Post_Filter", "loop_size"=all_t_size[,3])
+b <- data.frame("State"=looping_df[,4], "loop_size"=looping_df[,3])
 c <- rbind(a, b)
-colnames(c)[3] <- "HiC Loops"
+
 
 both <- melt(c, id=c("loop_size"))
 
-ggplot(both, aes(x=(loop_size/1000), col=value, size=1.5)) +
-    geom_density() + 
+ggplot(both, aes(x=(loop_size/1000), fill=value, col=value)) +
+    geom_density(alpha=0.1) + 
     theme +
-    scale_color_manual(values=c("#808080", "#FF8F1E")) +
+    #scale_color_manual(values=c("#808080", "#FF8F1E")) +
     labs(x="Loop Size (kb)", y="Loop Size Frequency", main="Density of Pre/Post Filtering of Loop Size")
 
 
 
 
 
-ggsave(paste0("pre_post_loop_frequency_plot_", loop_constraint, "mb_limit_", today_f, ".png"))
-
-
-
-
-
-
-
-
-
-test <- rbind(data.frame("State"="healthy", "qval"=healthy_df[,6]), data.frame("State"="disease", "qval"=disease_df[,6]))
-
-ggplot(test, aes(x=qval, col=State)) +
-    geom_density(thickness=2) + 
-    theme +
-    scale_color_manual(values=c("#808080", "#FF8F1E")) +
-    labs(x="Mustache Q-value", y="Q Value Frequency")
-ggsave(paste0("mustache_qvalue_density_plot_", today_f, ".png"))
-
+ggsave(paste0("pre_post_loop_frequency_plot_all_mb_limit_", today_f, ".png"))
 
 
 

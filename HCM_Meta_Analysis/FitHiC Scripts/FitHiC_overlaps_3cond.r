@@ -101,7 +101,7 @@ library('viridisLite')
         chip_bed <- "mef2a.bed"
         tf <- "mef2a"  
         qval <- 0.01
-        filter_qval <- 0.005
+        filter_qval <- 0.01
         contact_thresh <- 3
 
 
@@ -135,7 +135,7 @@ library('viridisLite')
             for(i in c((-5000), (-2500), 0, 2500, 5000)){
                 hic_filtered_a <- rbind(hic_filtered_a, chip_filter(i))
             }                
-            hic_filtered <- hic_filtered_a %>% distinct(fragmentMid1, fragmentMid2,  .keep_all=TRUE)
+            hic_filtered <- hic_filtered_a %>% distinct(chr1, fragmentMid1, fragmentMid2,  .keep_all=TRUE)
 
         # Exporting the bed file to be used for the mergin
             hic_bed <- hic_filtered[,c(1, 2, 4)]
@@ -143,7 +143,7 @@ library('viridisLite')
             bed_file <- bed_create(hic, 1, 10000)
 
             setwd(bed_export_directory)
-            export_bed(bed_file, "merge_mef2a_kr_all")
+            export_bed(bed_file, "merge_mef2a_kr_all_q001")
         
         # Run the following bedtools command in the bed_export_directory:
         #       bedtools merge -d 1000 -i merge_mef2a_kr_all.bed > mef2a_kr_all_merged.bed

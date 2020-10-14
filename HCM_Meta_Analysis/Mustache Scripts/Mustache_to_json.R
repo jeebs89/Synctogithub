@@ -35,7 +35,7 @@ library('tidyverse', lib="/home/jcayford/r_libs")
 
 #
 # q.value threshold, since the input files have a threshold of 0.1
-qval_threshold <- 0.01
+qval_threshold <- 0.1
 today <- Sys.Date()
 date <- format(today, format="%d_%b_%Y")
 
@@ -60,12 +60,12 @@ cols <- c("chr1", "fragmentMid1", "chr2", "fragmentMid2", "p.value", "q.value")
   # End of the script. Go to the export_directory and run the awk script and then use Samtools to bgzip and tabix.
     # From there you can import them into a .json for washU visualization
     # conda activate samtools
-        awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' mustache_hic_contacts_all_healthy_non_merged_q0.01_30SEP2020.txt | sort -k1,1 -k2,2n > mustache_hic_contacts_all_healthy_non_merged_q0.01_30SEP2020_out_washU.bed
-        bgzip mustache_hic_contacts_all_healthy_non_merged_q0.01_30SEP2020_out_washU.bed
-        tabix -p bed mustache_hic_contacts_all_healthy_non_merged_q0.01_30SEP2020_out_washU.bed.gz
+        awk '{if (NR > 1) {if ($NF > 0) {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"($2-1)"\t"($2+1)"\t"$3":"($4-1)"-"($4+1)",500\t"(NR-1)"\t."}}}' mustache_hic_contacts_all_healthy_non_merged_q0.1_07_Oct_2020.txt | sort -k1,1 -k2,2n > mustache_hic_contacts_all_healthy_non_merged_q0.1_07_Oct_2020_out_washU.bed
+        bgzip mustache_hic_contacts_all_healthy_non_merged_q0.1_07_Oct_2020_out_washU.bed
+        tabix -p bed mustache_hic_contacts_all_healthy_non_merged_q0.1_07_Oct_2020_out_washU.bed.gz
 
 
     # Copy the data to the BioAdHoc folder
-        cp *_30SEP2020* /mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/washU_filtered/
+        cp *_07_Oct_2020* /mnt/BioAdHoc/Groups/vd-vijay/justin/HCM_Meta/washU_filtered/
 
 
